@@ -1,7 +1,7 @@
 import { MongoClient } from "mongodb";
 
 const cliente = new MongoClient(
-  "mongodb+srv://alura:123@aluracluster.lp6gdyc.mongodb.net/?retryWrites=true&w=majority"
+  "mongodb+srv://cadu0077:admin123@paraestudos.klgex.mongodb.net/?retryWrites=true&w=majority&appName=ParaEstudos"
 );
 
 let documentosColecao;
