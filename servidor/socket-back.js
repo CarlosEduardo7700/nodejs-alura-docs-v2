@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import io from "./servidor.js";
 import escutarEventosDeHome from "./eventos/escutarEventosDeHome.js";
 import escutarEventosDeDocumento from "./eventos/escutarEventosDeDocumento.js";
