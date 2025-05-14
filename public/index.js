@@ -1,4 +1,9 @@
 import { emitirAdicionarDocumento } from "./socket-front-index.js";
+import { obterCookie } from "./utils/cookie.js";
+
+const tokenJWT = obterCookie("tokenJWT");
+
+console.log(tokenJWT);
 
 const listaDocumentos = document.getElementById("lista-documentos");
 const form = document.getElementById("form-adiciona-documento");
