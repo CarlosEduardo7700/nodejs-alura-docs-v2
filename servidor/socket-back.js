@@ -1,56 +1,22 @@
-import {
-  adicionarDocumento,
-  atualizaDocumento,
-  encontrarDocumento,
-  excluirDocumento,
-  obterDocumentos,
-} from "./db/documentosDb.js";
+import "dotenv/config";
+
 import io from "./servidor.js";
+import escutarEventosDeHome from "./eventos/escutarEventosDeHome.js";
+import escutarEventosDeDocumento from "./eventos/escutarEventosDeDocumento.js";
+import escutarEventosDeCadastro from "./eventos/escutarEventosDeCadastro.js";
+import escutarEventosDeLogin from "./eventos/escutarEventosDeLogin.js";
+import autorizarUsuario from "./middlewares/autorizarUsuario.js";
 
-io.on("connection", (socket) => {
-  socket.on("obter_documentos", async (devolverDocumentos) => {
-    const documentos = await obterDocumentos();
+const namespaceUsuario = io.of("/usuarios");
 
-    devolverDocumentos(documentos);
-  });
+namespaceUsuario.use(autorizarUsuario);
 
-  socket.on("adicionar_documento", async (nome) => {
-    const documentoExiste = (await encontrarDocumento(nome)) !== null;
+namespaceUsuario.on("connection", (socket) => {
+  escutarEventosDeHome(socket, namespaceUsuario);
+  escutarEventosDeDocumento(socket, namespaceUsuario);
+});
 
-    if (documentoExiste) {
-      socket.emit("documento_existente", nome);
-    } else {
-      const resultado = await adicionarDocumento(nome);
-
-      if (resultado.acknowledged) {
-        io.emit("adicionar_documento_interface", nome);
-      }
-    }
-  });
-
-  socket.on("selecionar_documento", async (nomeDocumento, devolverTexto) => {
-    socket.join(nomeDocumento);
-
-    const documento = await encontrarDocumento(nomeDocumento);
-
-    if (documento) {
-      devolverTexto(documento.texto);
-    }
-  });
-
-  socket.on("texto_editor", async ({ texto, nomeDocumento }) => {
-    const atualizacao = await atualizaDocumento(nomeDocumento, texto);
-
-    if (atualizacao.modifiedCount) {
-      socket.to(nomeDocumento).emit("texto_editor_clientes", texto);
-    }
-  });
-
-  socket.on("excluir_documento", async (nome) => {
-    const resultado = await excluirDocumento(nome);
-
-    if (resultado.deletedCount) {
-      io.emit("excluir_documento_sucesso", nome);
-    }
-  });
+io.of("/").on("connection", (socket) => {
+  escutarEventosDeCadastro(socket, io);
+  escutarEventosDeLogin(socket, io);
 });
