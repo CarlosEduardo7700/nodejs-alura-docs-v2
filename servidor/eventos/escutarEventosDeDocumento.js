@@ -3,22 +3,33 @@ import {
   encontrarDocumento,
   excluirDocumento,
 } from "../db/documentosDb.js";
-import { adicionarConexao, obterUsuariosNoDocumento, removerConexao } from "../utils/conexoesNosDocumentos.js";
+import { adicionarConexao, encontrarConexao, obterUsuariosNoDocumento, removerConexao } from "../utils/conexoesNosDocumentos.js";
 
 function escutarEventosDeDocumento(socket, io) {
   socket.on("selecionar_documento", async ({ nomeDocumento, nomeUsuario }, devolverTexto) => {
     const documento = await encontrarDocumento(nomeDocumento);
     
     if (documento) {
-      socket.join(nomeDocumento);
+      const conexaoEncontrada = encontrarConexao(nomeDocumento, nomeUsuario);
 
-      adicionarConexao({ nomeDoDocumento: nomeDocumento, nomeDoUsuario: nomeUsuario });
+      if (!conexaoEncontrada) {
+        socket.join(nomeDocumento);
+  
+        adicionarConexao({ nomeDoDocumento: nomeDocumento, nomeDoUsuario: nomeUsuario });
 
-      const usuariosNoDocumento = obterUsuariosNoDocumento(nomeDocumento);
+        socket.data = {
+          usuarioEntrou: true,
+        }
+  
+        const usuariosNoDocumento = obterUsuariosNoDocumento(nomeDocumento);
+  
+        io.to(nomeDocumento).emit("conexoes_no_documento", usuariosNoDocumento);
+  
+        devolverTexto(documento.texto);
+      } else {
+        socket.emit("usuario_ja_conectado_no_documento");
+      }
 
-      io.to(nomeDocumento).emit("conexoes_no_documento", usuariosNoDocumento);
-
-      devolverTexto(documento.texto);
     }
 
     socket.on("texto_editor", async ({ texto, nomeDocumento }) => {
@@ -38,11 +49,13 @@ function escutarEventosDeDocumento(socket, io) {
     });
 
     socket.on("disconnect", () => {
-      removerConexao(nomeDocumento, nomeUsuario);
-
-      const usuariosNoDocumento = obterUsuariosNoDocumento(nomeDocumento);
-
-      io.to(nomeDocumento).emit("conexoes_no_documento", usuariosNoDocumento);
+      if (socket.data.usuarioEntrou) {
+        removerConexao(nomeDocumento, nomeUsuario);
+  
+        const usuariosNoDocumento = obterUsuariosNoDocumento(nomeDocumento);
+  
+        io.to(nomeDocumento).emit("conexoes_no_documento", usuariosNoDocumento);
+      }
     });
   });
 }
